@@ -2,9 +2,12 @@ name: Java CI
 
 on:
   push:
+    paths-ignore:
+      - 'parche*.zip'
   pull_request:
     paths-ignore:
       - '**.md'
+  workflow_dispatch:
 
 jobs:
   build:
