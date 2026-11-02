@@ -116,8 +116,10 @@ public final class MainPage extends StackPane implements DecoratorPage {
         FXUtils.onChangeAndOperate(selectedRepositorySnapshot,
                 ignored -> mutableInstances.setAll(GameDirectoryManager.getSelectedRepository().getDisplayInstances().toList()));
 
-        // ---- fondo: casi negro con un resplandor azul muy tenue y ancho detrás del logo (estilo Eufonia)
-        setStyle("-fx-background-color: radial-gradient(center 50% 46%, radius 55%, rgba(47,140,255,0.13) 0%, rgba(47,140,255,0.04) 55%, transparent 100%), #07090f;");
+        // ---- fondo: degradado azul marino oscuro (más claro arriba-izquierda) con viñeta, estilo Eufonia
+        setStyle("-fx-background-color:"
+                + " radial-gradient(center 50% 50%, radius 85%, transparent 55%, rgba(0,0,0,0.55) 100%),"
+                + " linear-gradient(from 0% 0% to 100% 100%, #0d1a38 0%, #070d1f 50%, #03060f 100%);");
 
         Pane stripeLayer = new Pane();
         stripeLayer.setMouseTransparent(true);
@@ -126,26 +128,49 @@ public final class MainPage extends StackPane implements DecoratorPage {
         stripeLayer.getChildren().add(stripe);
         stripeLayer.layoutBoundsProperty().addListener((obs, old, b) -> {
             double w = b.getWidth(), h = b.getHeight();
-            stripe.getPoints().setAll(0.0, h, 0.0, h - 4, w, h - 12, w, h);
+            // Franja inclinada abajo que sube hacia la derecha y se ensancha por el borde derecho (como Eufonia).
+            stripe.getPoints().setAll(0.0, h - 5, w - 18, h - 20, w, 0.0, w, h, 0.0, h);
         });
 
-        // ---- pantalla de inicio: logo de la rata + "Gustambo Launcher"
+        // ---- pantalla de inicio: logo de la rata + "Gustambo Studio"
         ImageView homeLogo = new ImageView(FXUtils.newBuiltinImage(RootPage.LAUNCHER_LOGO, 512, 512, true, true));
-        homeLogo.setFitWidth(250);
-        homeLogo.setFitHeight(250);
+        homeLogo.setFitWidth(270);
+        homeLogo.setFitHeight(270);
         homeLogo.setPreserveRatio(true);
         homeLogo.setSmooth(true);
-        // Glow suave y ancho: poca opacidad, mucho radio, sin spread (nada de neón).
-        homeLogo.setEffect(new DropShadow(BlurType.GAUSSIAN, Color.web(ACCENT, 0.32), 70, 0.0, 0, 0));
+        // Glow en dos capas que sigue la silueta de la rata: aro cercano + halo ancho.
+        DropShadow glowNear = new DropShadow(BlurType.GAUSSIAN, Color.web(ACCENT, 0.70), 34, 0.30, 0, 0);
+        DropShadow glowFar = new DropShadow(BlurType.GAUSSIAN, Color.web(ACCENT, 0.50), 110, 0.15, 0, 0);
+        glowFar.setInput(glowNear);
+        homeLogo.setEffect(glowFar);
+
+        // Resplandor circular suave detrás del logo (no cambia el tamaño del layout).
+        Region halo = new Region();
+        halo.setMouseTransparent(true);
+        halo.setManaged(false);
+        halo.setStyle("-fx-background-color: radial-gradient(center 50% 50%, radius 50%,"
+                + " rgba(47,140,255,0.34) 0%, rgba(47,140,255,0.12) 55%, transparent 100%);"
+                + " -fx-background-radius: 360;");
+        halo.resize(720, 720);
+        halo.relocate((270 - 720) / 2.0, (270 - 720) / 2.0);
+        StackPane homeLogoBox = new StackPane(halo, homeLogo);
+        homeLogoBox.setMinSize(270, 270);
+        homeLogoBox.setPrefSize(270, 270);
+        homeLogoBox.setMaxSize(270, 270);
 
         Label homeName = new Label("GUSTAMBO");
         homeName.setStyle("-fx-text-fill: #eef4ff; -fx-font-size: 64px; -fx-font-weight: bold;");
-        Label homeSub = new Label("LAUNCHER");
+        Label homeSub = new Label("STUDIO");
         homeSub.setStyle("-fx-text-fill: " + ACCENT_TEXT + "; -fx-font-size: 54px;");
-        VBox homeNames = new VBox(0, homeName, homeSub);
+        Label homeMark = new Label("®");
+        homeMark.setStyle("-fx-text-fill: #eef4ff; -fx-font-size: 24px;");
+        homeMark.setPadding(new Insets(12, 0, 0, 0));
+        HBox homeNameRow = new HBox(4, homeName, homeMark);
+        homeNameRow.setAlignment(Pos.TOP_LEFT);
+        VBox homeNames = new VBox(0, homeNameRow, homeSub);
         homeNames.setAlignment(Pos.CENTER_LEFT);
 
-        HBox homeBrand = new HBox(32, homeLogo, homeNames);
+        HBox homeBrand = new HBox(32, homeLogoBox, homeNames);
         homeBrand.setAlignment(Pos.CENTER);
         homeView.getChildren().setAll(homeBrand);
         homeView.setAlignment(Pos.CENTER);
