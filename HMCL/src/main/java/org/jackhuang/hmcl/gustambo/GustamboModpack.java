@@ -7,6 +7,12 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import javafx.application.Platform;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.beans.property.ReadOnlyStringProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import org.jackhuang.hmcl.Metadata;
 import org.jackhuang.hmcl.game.GameInstanceID;
 import org.jackhuang.hmcl.game.HMCLGameInstance;
@@ -52,7 +58,10 @@ public final class GustamboModpack {
     private static final String REPOSITORY = "trixito/Gustambo-Java";
 
     /// Nombre de la instancia de Minecraft que se crea/actualiza.
-    private static final String INSTANCE_NAME = "Gustambo";
+    private static final String INSTANCE_NAME = "Trixsafio";
+
+    /// Nombre que se muestra en la interfaz.
+    public static final String DISPLAY_NAME = "Trixsafio";
 
     /// Dirección del servidor (`host` o `host:puerto`) al que entrar directo al jugar.
     /// Vacío = no entrar automáticamente.
@@ -63,11 +72,56 @@ public final class GustamboModpack {
 
     private static final Path STATE_FILE = Metadata.HMCL_LOCAL_HOME.resolve("gustambo-modpack.properties");
 
+    /// `true` cuando hay una versión nueva del modpack que el jugador aún no ha instalado.
+    private static final BooleanProperty UPDATE_AVAILABLE = new SimpleBooleanProperty(false);
+
+    /// Versión nueva detectada y pendiente de instalar (solo hilo de JavaFX).
+    private static Release pending;
+
+    /// `true` mientras se descarga/instala el modpack (evita instalaciones dobles).
+    private static boolean installing;
+
+    /// Texto de estado para la pantalla principal ("No instalado · versión X", etc.).
+    private static final StringProperty STATUS = new SimpleStringProperty("Comprobando…");
+
+    /// Si es `true`, la próxima comprobación instala el modpack aunque no esté instalado.
+    private static boolean autoInstall;
+
+    public static ReadOnlyStringProperty statusProperty() {
+        return STATUS;
+    }
+
+    /// El jugador pidió instalar (botón INSTALAR o icono de la instancia): instala si falta
+    /// y, si ya está instalado, comprueba actualizaciones.
+    public static void installNow() {
+        autoInstall = true;
+        start();
+    }
+
+    public static ReadOnlyBooleanProperty updateAvailableProperty() {
+        return UPDATE_AVAILABLE;
+    }
+
+    /// Vuelve a preguntar al jugador si quiere actualizar (si hay una actualización pendiente).
+    public static void promptUpdate() {
+        if (pending == null) return;
+        Release release = pending;
+        Controllers.dialog(new MessageDialogPane.Builder(
+                "Hay una nueva versión de " + DISPLAY_NAME + " (" + release.tag() + ").\nDebes actualizar para poder jugar.",
+                "Actualización obligatoria", MessageDialogPane.MessageType.INFO)
+                .addAction("Actualizar", () -> {
+                    HMCLGameRepository repository = GameDirectoryManager.getSelectedRepository();
+                    install(repository, new GameInstanceID(INSTANCE_NAME), release, true);
+                })
+                .build());
+    }
+
     private record Release(String tag, String assetName, String assetUrl) {
     }
 
     /// Punto de entrada: llamar una vez, desde el hilo de JavaFX, cuando los controladores ya están listos.
     public static void start() {
+        if (installing) return;
         Schedulers.io().execute(() -> {
             Release release = null;
             try {
@@ -93,28 +147,53 @@ public final class GustamboModpack {
         GameInstanceID id = new GameInstanceID(INSTANCE_NAME);
         boolean installed = isInstalled(repository, id);
 
+        boolean install = autoInstall;
+        autoInstall = false;
+
         if (latest == null) {
             if (!installed) {
-                showError("No se pudo descargar el modpack del evento.\nRevisa tu conexión a internet y vuelve a abrir el launcher.", null);
+                STATUS.set("No instalado · sin conexión");
+                if (install) {
+                    showError("No se pudo descargar el modpack del evento.\nRevisa tu conexión a internet e inténtalo de nuevo.", null);
+                }
+            } else {
+                String tag = readInstalledTag();
+                STATUS.set("Instalado" + (tag == null ? "" : " · versión " + tag));
             }
             return; // ya instalado: se puede jugar sin conexión
         }
 
         if (installed && latest.tag().equals(readInstalledTag())) {
+            pending = null;
+            UPDATE_AVAILABLE.set(false);
+            STATUS.set("Instalado · versión " + latest.tag());
             return; // ya está al día
         }
 
-        install(repository, id, latest, installed);
+        if (!installed) {
+            STATUS.set("No instalado · versión " + latest.tag());
+            if (install) install(repository, id, latest, false); // solo si el jugador lo pidió
+            return;
+        }
+
+        // ya instalado pero hay versión nueva: avisar y dejar que el jugador decida
+        pending = latest;
+        STATUS.set("Actualización obligatoria · versión " + latest.tag());
+        UPDATE_AVAILABLE.set(true);
+        promptUpdate();
     }
 
     // ------------------------------------------------------------------ instalación
 
     private static void install(HMCLGameRepository repository, GameInstanceID id, Release release, boolean update) {
+        if (installing) return;
+        installing = true;
         Path file = Metadata.getBundledModpackDirectory().resolve(release.assetName());
         try {
             Files.createDirectories(file.getParent());
             Files.deleteIfExists(file);
         } catch (IOException e) {
+            installing = false;
             showError("No se pudo preparar la carpeta de descarga.", e);
             return;
         }
@@ -124,14 +203,18 @@ public final class GustamboModpack {
         Task<Object> pipeline = download.thenComposeAsync(() -> toObjectTask(createInstallTask(repository, id, file, update)));
 
         Task<?> whole = pipeline.whenComplete(Schedulers.javafx(),
-                () -> onInstalled(repository, id, release, file),
+                () -> {
+                    installing = false;
+                    onInstalled(repository, id, release, file);
+                },
                 exception -> {
+                    installing = false;
                     LOG.warning("Falló la instalación del modpack", exception);
                     showError(update ? "No se pudo actualizar el modpack." : "No se pudo instalar el modpack.", exception);
                 });
 
         Controllers.taskDialog(whole,
-                update ? "Actualizando " + Metadata.FULL_NAME : "Instalando " + Metadata.FULL_NAME,
+                update ? "Actualizando " + DISPLAY_NAME : "Instalando " + DISPLAY_NAME,
                 TaskCancellationAction.NORMAL);
     }
 
@@ -159,6 +242,9 @@ public final class GustamboModpack {
         }
 
         writeInstalledTag(release.tag());
+        pending = null;
+        UPDATE_AVAILABLE.set(false);
+        STATUS.set("Instalado · versión " + release.tag());
         try {
             Files.deleteIfExists(file);
         } catch (IOException e) {
@@ -279,7 +365,7 @@ public final class GustamboModpack {
         int index = PREFERRED_ASSETS.indexOf(lower);
         if (index >= 0) return index;
         // nunca elegir el propio launcher
-        if (lower.contains("hmcl") || lower.contains("gustamboclient") || lower.contains("launcher")) return -1;
+        if (lower.contains("hmcl") || lower.contains("gustambolauncher") || lower.contains("gustamboclient") || lower.contains("launcher")) return -1;
         if (lower.endsWith(".mrpack")) return 10;
         if (lower.endsWith(".zip") && (lower.contains("modpack") || lower.contains("evento"))) return 11;
         if (lower.endsWith(".zip")) return 12;

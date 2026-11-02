@@ -28,6 +28,11 @@ public class DecoratorAnimatedPage extends Control {
         center.getChildren().setAll(children);
     }
 
+    /// Ancho de la barra lateral; las subclases pueden cambiarlo.
+    protected double getLeftWidth() {
+        return 200;
+    }
+
     public VBox getLeft() {
         return left;
     }
@@ -48,7 +53,7 @@ public class DecoratorAnimatedPage extends Control {
 
             BorderPane pane = new BorderPane();
             pane.setLeft(control.left);
-            FXUtils.setLimitWidth(control.left, 200);
+            FXUtils.setLimitWidth(control.left, control.getLeftWidth());
             pane.setCenter(control.center);
             getChildren().setAll(pane);
         }

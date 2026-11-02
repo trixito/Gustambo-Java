@@ -842,6 +842,14 @@ public final class GameSettingsPage<S extends GameSettings> extends StackPane
             nativeLibrarySettings.getContent().add(useNativeOpenALPane);
             useNativeOpenALPane.setTitle(i18n("settings.advanced.use_native_openal"));
             useNativeOpenALPane.setSubtitle(i18n("settings.advanced.linux_freebsd_only"));
+
+            // Gustambo Launcher: solo se muestran la memoria RAM y Java
+            gameSettings.getContent().setAll(javaSublist, memorySublist);
+            rootPane.getChildren().setAll(
+                    readOnlySettingsHint,
+                    ComponentList.createComponentListTitle("Juego"),
+                    gameSettings
+            );
         }
 
     }

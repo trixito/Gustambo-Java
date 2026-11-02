@@ -4,13 +4,11 @@ package org.jackhuang.hmcl;
 
 import org.jackhuang.hmcl.util.StringUtils;
 import org.jackhuang.hmcl.util.io.JarUtils;
-import org.jackhuang.hmcl.util.platform.Architecture;
 import org.jackhuang.hmcl.util.platform.OperatingSystem;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.EnumSet;
 
 /**
  * Stores metadata about this application.
@@ -19,8 +17,8 @@ public final class Metadata {
     private Metadata() {
     }
 
-    public static final String NAME = "GustamboClient";
-    public static final String FULL_NAME = "Gustambo Client";
+    public static final String NAME = "GustamboLauncher";
+    public static final String FULL_NAME = "Gustambo Launcher";
     public static final String VERSION = System.getProperty("hmcl.version.override", JarUtils.getAttribute("hmcl.version", "@develop@"));
 
     /// Explicit Application User Model ID used for Windows taskbar grouping and pinning.
@@ -100,30 +98,7 @@ public final class Metadata {
     }
 
     public static @Nullable String getSuggestedJavaDownloadLink() {
-        if (OperatingSystem.CURRENT_OS == OperatingSystem.LINUX && Architecture.SYSTEM_ARCH == Architecture.LOONGARCH64_OW)
-            return "https://www.loongnix.cn/zh/api/java/downloads-jdk21/index.html";
-        else {
-            EnumSet<Architecture> supportedArchitectures;
-            if (OperatingSystem.CURRENT_OS == OperatingSystem.WINDOWS)
-                supportedArchitectures = EnumSet.of(Architecture.X86_64, Architecture.X86, Architecture.ARM64);
-            else if (OperatingSystem.CURRENT_OS == OperatingSystem.LINUX)
-                supportedArchitectures = EnumSet.of(
-                        Architecture.X86_64, Architecture.X86,
-                        Architecture.ARM64, Architecture.ARM32,
-                        Architecture.RISCV64, Architecture.LOONGARCH64
-                );
-            else if (OperatingSystem.CURRENT_OS == OperatingSystem.MACOS)
-                supportedArchitectures = EnumSet.of(Architecture.X86_64, Architecture.ARM64);
-            else
-                supportedArchitectures = EnumSet.noneOf(Architecture.class);
-            if (supportedArchitectures.contains(Architecture.SYSTEM_ARCH))
-                return String.format("https://docs.hmcl.net/downloads/%s/%s.html",
-                        OperatingSystem.CURRENT_OS.getCheckedName(),
-                        Architecture.SYSTEM_ARCH.getCheckedName()
-                );
-            else
-                return null;
-        }
+        return "https://adoptium.net/temurin/releases/?version=21";
     }
 
     /// Directory under [HMCL_LOCAL_HOME] that holds a launcher-bundled modpack for automatic install.

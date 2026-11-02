@@ -102,9 +102,7 @@ public final class Controllers {
     /// are applied on the JavaFX application thread.
     public static ReadOnlyStringProperty launcherTitleProperty() {
         if (launcherTitle == null) {
-            launcherTitle = new SimpleStringProperty(Controllers.class, "launcherTitle", Metadata.OFFICIAL_BUILD
-                    ? i18n("launcher.title", Metadata.VERSION)
-                    : i18n("launcher.title.unofficial", Metadata.VERSION));
+            launcherTitle = new SimpleStringProperty(Controllers.class, "launcherTitle", Metadata.FULL_NAME);
             if (Metadata.OFFICIAL_BUILD) {
                 @Nullable Boolean selfVerified = IntegrityChecker.getSelfVerified();
                 if (selfVerified != null) {

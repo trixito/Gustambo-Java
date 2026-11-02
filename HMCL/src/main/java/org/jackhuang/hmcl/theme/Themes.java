@@ -441,6 +441,9 @@ public final class Themes {
         colorSchemeProperty().addListener(ignored -> refreshThemeColorBackground());
     }
 
+    /// Gustambo Launcher siempre usa el modo oscuro.
+    private static final boolean FORCE_DARK = true;
+
     /// Cached system default brightness.
     private static @Nullable Brightness defaultBrightness;
 
@@ -448,6 +451,7 @@ public final class Themes {
     ///
     /// @return the brightness used by theme condition matching
     public static Brightness getThemeConditionBrightness() {
+        if (FORCE_DARK) return Brightness.DARK;
         if (!settings().getThemeAppearanceOverrides().contains(LauncherSettings.THEME_APPEARANCE_BRIGHTNESS_MODE)) {
             return getAutomaticBrightness();
         }
@@ -464,6 +468,7 @@ public final class Themes {
     ///
     /// @return the effective launcher brightness
     public static Brightness getCurrentBrightness() {
+        if (FORCE_DARK) return Brightness.DARK;
         Brightness contextBrightness = getThemeConditionBrightness();
         if (!settings().getThemeAppearanceOverrides().contains(LauncherSettings.THEME_APPEARANCE_BRIGHTNESS_MODE)) {
             try {
