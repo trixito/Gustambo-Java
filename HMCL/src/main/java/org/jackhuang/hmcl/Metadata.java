@@ -24,7 +24,7 @@ public final class Metadata {
     public static final String VERSION = System.getProperty("hmcl.version.override", JarUtils.getAttribute("hmcl.version", "@develop@"));
 
     /// Explicit Application User Model ID used for Windows taskbar grouping and pinning.
-    public static final String WINDOWS_APP_USER_MODEL_ID = "org.jackhuang.hmcl";
+    public static final String WINDOWS_APP_USER_MODEL_ID = "net.trixito.gustambo.client";
 
     public static final String TITLE = NAME + " " + VERSION;
 
@@ -40,17 +40,19 @@ public final class Metadata {
     public static final String HMCL_UPDATE_URL = System.getProperty("hmcl.update_source.override", PUBLISH_URL + "/api/update_link");
     public static final String MANUAL_UPDATE_URL = "https://github.com/trixito/Gustambo-Java/releases";
 
-    public static final String DOCS_URL = "https://docs.hmcl.net";
-    public static final String CONTACT_URL = DOCS_URL + "/help.html";
-    public static final String CHANGELOG_URL = DOCS_URL + "/changelog/";
-    public static final String EULA_URL = DOCS_URL + "/eula/hmcl.html";
-    public static final String GROUPS_URL = "https://www.bilibili.com/opus/905435541874409529";
+    // GustamboClient: enlaces propios (antes apuntaban a docs.hmcl.net y bilibili)
+    public static final String DOCS_URL = REPOSITORY_URL;
+    public static final String CONTACT_URL = REPOSITORY_URL + "/issues";
+    public static final String CHANGELOG_URL = MANUAL_UPDATE_URL;
+    public static final String EULA_URL = REPOSITORY_URL;
+    public static final String GROUPS_URL = REPOSITORY_URL;
 
     public static final String BUILD_CHANNEL = JarUtils.getAttribute("hmcl.version.type", "nightly");
     public static final String GITHUB_SHA = JarUtils.getAttribute("hmcl.version.hash", null);
 
     public static final Path CURRENT_DIRECTORY = Path.of(System.getProperty("user.dir")).toAbsolutePath().normalize();
-    public static final Path MINECRAFT_DIRECTORY = OperatingSystem.getWorkingDirectory("minecraft");
+    /// Carpeta de juego propia de GustamboClient (no toca el .minecraft del jugador).
+    public static final Path MINECRAFT_DIRECTORY;
     public static final Path HMCL_USER_HOME;
     public static final Path HMCL_LOCAL_HOME;
     public static final Path DEPENDENCIES_DIRECTORY;
@@ -61,21 +63,23 @@ public final class Metadata {
             if (OperatingSystem.CURRENT_OS.isLinuxOrBSD()) {
                 String xdgData = System.getenv("XDG_DATA_HOME");
                 if (StringUtils.isNotBlank(xdgData)) {
-                    HMCL_USER_HOME = Path.of(xdgData, "hmcl").toAbsolutePath().normalize();
+                    HMCL_USER_HOME = Path.of(xdgData, "gustambo").toAbsolutePath().normalize();
                 } else {
-                    HMCL_USER_HOME = Path.of(System.getProperty("user.home"), ".local", "share", "hmcl").toAbsolutePath().normalize();
+                    HMCL_USER_HOME = Path.of(System.getProperty("user.home"), ".local", "share", "gustambo").toAbsolutePath().normalize();
                 }
             } else {
-                HMCL_USER_HOME = OperatingSystem.getWorkingDirectory("hmcl");
+                HMCL_USER_HOME = OperatingSystem.getWorkingDirectory("gustambo");
             }
         } else {
             HMCL_USER_HOME = Path.of(hmclHome).toAbsolutePath().normalize();
         }
 
+        MINECRAFT_DIRECTORY = HMCL_USER_HOME.resolve("minecraft");
+
         String hmclCurrentDir = System.getProperty("hmcl.dir", System.getenv("HMCL_LOCAL_HOME"));
         HMCL_LOCAL_HOME = StringUtils.isNotBlank(hmclCurrentDir)
                 ? Path.of(hmclCurrentDir).toAbsolutePath().normalize()
-                : CURRENT_DIRECTORY.resolve(".hmcl");
+                : CURRENT_DIRECTORY.resolve(".gustambo");
 
         String hmclDependencies = System.getProperty("hmcl.dependencies.dir", System.getenv("HMCL_DEPENDENCIES_DIR"));
         DEPENDENCIES_DIRECTORY = StringUtils.isNotBlank(hmclDependencies)

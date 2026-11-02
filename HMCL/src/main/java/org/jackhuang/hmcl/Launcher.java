@@ -20,6 +20,8 @@ import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import org.jackhuang.hmcl.game.HMCLCacheRepository;
+import org.jackhuang.hmcl.gustambo.GustamboAccount;
+import org.jackhuang.hmcl.gustambo.GustamboModpack;
 import org.jackhuang.hmcl.setting.*;
 import org.jackhuang.hmcl.task.AsyncTaskExecutor;
 import org.jackhuang.hmcl.task.Schedulers;
@@ -126,9 +128,11 @@ public final class Launcher extends Application {
                 Platform.setImplicitExit(false);
                 Controllers.initialize(primaryStage);
 
-                // GustamboClient: actualizador de HMCL desactivado
+                // GustamboClient: actualizador de HMCL desactivado; en su lugar se instala/actualiza el modpack del evento
+                GustamboModpack.start();
 
                 primaryStage.show();
+                GustamboAccount.ensureAccount();
             });
         } catch (Throwable e) {
             CRASH_REPORTER.uncaughtException(Thread.currentThread(), e);
