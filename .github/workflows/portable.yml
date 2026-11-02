@@ -1,0 +1,83 @@
+name: Portable Windows (con Java)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  jar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: liberica
+          java-version: 17
+          java-package: jdk+fx
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Compilar jar
+        run: ./gradlew :HMCL:jar --no-daemon
+        env:
+          JAVA_TOOL_OPTIONS: -Djava.awt.headless=true
+          MICROSOFT_AUTH_ID: ${{ secrets.MICROSOFT_AUTH_ID }}
+          CURSEFORGE_API_KEY: ${{ secrets.CURSEFORGE_API_KEY }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jar
+          path: HMCL/build/libs/HMCL-*.jar
+
+  portable:
+    needs: jar
+    runs-on: windows-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: jar
+          path: jar
+      - uses: actions/setup-java@v4
+        with:
+          distribution: liberica
+          java-version: 21
+          java-package: jdk+fx
+      - name: Empaquetar con Java incluido
+        shell: bash
+        run: |
+          cat > opts.py <<'EOF'
+          import sys, zipfile
+          z = zipfile.ZipFile(sys.argv[1])
+          mf = z.read("META-INF/MANIFEST.MF").decode("utf-8").replace("\r\n", "\n").replace("\n ", "")
+          attrs = {}
+          for line in mf.split("\n"):
+              if ": " in line:
+                  k, v = line.split(": ", 1)
+                  attrs[k] = v
+          for tok in attrs.get("Add-Opens", "").split():
+              print(f"--add-opens={tok}=ALL-UNNAMED")
+          for tok in attrs.get("Add-Exports", "").split():
+              print(f"--add-exports={tok}=ALL-UNNAMED")
+          if attrs.get("Enable-Native-Access"):
+              print("--enable-native-access=ALL-UNNAMED")
+          EOF
+          mkdir -p in dist
+          cp jar/HMCL-*.jar in/GustamboClient.jar
+          python opts.py in/GustamboClient.jar > opts.txt
+          args=()
+          while IFS= read -r line; do
+            line="${line%$'\r'}"
+            if [ -n "$line" ]; then args+=(--java-options "$line"); fi
+          done < opts.txt
+          echo "Opciones de JVM: ${#args[@]}"
+          jpackage --type app-image --name GustamboClient --dest dist \
+            --input in --main-jar GustamboClient.jar \
+            --main-class org.jackhuang.hmcl.Main \
+            --runtime-image "$JAVA_HOME" \
+            "${args[@]}"
+      - name: Quitar lo que sobra y comprobar JavaFX
+        shell: bash
+        run: |
+          rm -rf dist/GustamboClient/runtime/jmods dist/GustamboClient/runtime/include dist/GustamboClient/runtime/lib/src.zip
+          test "$(dist/GustamboClient/runtime/bin/java.exe --list-modules | grep -cE '^javafx\.(base|graphics|controls)@')" -ge 3
+          ls dist/GustamboClient dist/GustamboClient/app
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GustamboClient-Windows
+          path: dist
