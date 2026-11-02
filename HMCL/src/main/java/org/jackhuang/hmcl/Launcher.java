@@ -20,6 +20,7 @@ import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import org.jackhuang.hmcl.game.HMCLCacheRepository;
+import org.jackhuang.hmcl.gustambo.DiscordPresence;
 import org.jackhuang.hmcl.gustambo.GustamboAccount;
 import org.jackhuang.hmcl.gustambo.GustamboModpack;
 import org.jackhuang.hmcl.setting.*;
@@ -130,6 +131,9 @@ public final class Launcher extends Application {
 
                 // Gustambo Launcher: actualizador de HMCL desactivado; se instala/actualiza el modpack Trixsafio
                 GustamboModpack.start();
+
+                // Gustambo Launcher: Discord Rich Presence ("Jugando a Gustambo Launcher - Trixsafio")
+                DiscordPresence.start();
 
                 primaryStage.show();
                 GustamboAccount.ensureAccount();
@@ -262,6 +266,7 @@ public final class Launcher extends Application {
 
     @Override
     public void stop() throws Exception {
+        DiscordPresence.stop();
         Controllers.onApplicationStop();
         SettingsManager.shutdown();
         LOG.shutdown();
