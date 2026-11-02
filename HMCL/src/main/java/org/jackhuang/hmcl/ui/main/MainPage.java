@@ -12,6 +12,8 @@ import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.effect.DropShadow;
+import javafx.scene.effect.BlurType;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
@@ -21,7 +23,6 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Polygon;
-import javafx.scene.shape.Rectangle;
 import org.jackhuang.hmcl.game.HMCLGameInstance;
 import org.jackhuang.hmcl.game.HMCLGameRepository;
 import org.jackhuang.hmcl.game.HMCLGameRepositorySnapshot;
@@ -115,8 +116,8 @@ public final class MainPage extends StackPane implements DecoratorPage {
         FXUtils.onChangeAndOperate(selectedRepositorySnapshot,
                 ignored -> mutableInstances.setAll(GameDirectoryManager.getSelectedRepository().getDisplayInstances().toList()));
 
-        // ---- fondo: azul muy oscuro con un resplandor suave y franja azul abajo
-        setStyle("-fx-background-color: radial-gradient(center 50% 45%, radius 60%, #0b2a63 0%, #050f26 50%, #02060f 100%);");
+        // ---- fondo: casi negro con un resplandor azul muy tenue y ancho detrás del logo (estilo Eufonia)
+        setStyle("-fx-background-color: radial-gradient(center 50% 46%, radius 55%, rgba(47,140,255,0.13) 0%, rgba(47,140,255,0.04) 55%, transparent 100%), #07090f;");
 
         Pane stripeLayer = new Pane();
         stripeLayer.setMouseTransparent(true);
@@ -129,14 +130,13 @@ public final class MainPage extends StackPane implements DecoratorPage {
         });
 
         // ---- pantalla de inicio: logo de la rata + "Gustambo Launcher"
-        ImageView homeLogo = new ImageView(FXUtils.newBuiltinImage(RootPage.LAUNCHER_LOGO, 480, 480, true, true));
-        homeLogo.setFitWidth(240);
-        homeLogo.setFitHeight(240);
+        ImageView homeLogo = new ImageView(FXUtils.newBuiltinImage(RootPage.LAUNCHER_LOGO, 512, 512, true, true));
+        homeLogo.setFitWidth(250);
+        homeLogo.setFitHeight(250);
         homeLogo.setPreserveRatio(true);
-        Rectangle homeClip = new Rectangle(240, 240);
-        homeClip.setArcWidth(72);
-        homeClip.setArcHeight(72);
-        homeLogo.setClip(homeClip);
+        homeLogo.setSmooth(true);
+        // Glow suave y ancho: poca opacidad, mucho radio, sin spread (nada de neón).
+        homeLogo.setEffect(new DropShadow(BlurType.GAUSSIAN, Color.web(ACCENT, 0.32), 70, 0.0, 0, 0));
 
         Label homeName = new Label("GUSTAMBO");
         homeName.setStyle("-fx-text-fill: #eef4ff; -fx-font-size: 64px; -fx-font-weight: bold;");

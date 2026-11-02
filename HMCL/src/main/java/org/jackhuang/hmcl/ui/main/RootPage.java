@@ -8,10 +8,14 @@ import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.Background;
+import javafx.scene.layout.BackgroundFill;
+import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import org.jackhuang.hmcl.gustambo.GustamboAccount;
 import org.jackhuang.hmcl.gustambo.GustamboModpack;
@@ -70,7 +74,7 @@ public class RootPage extends DecoratorAnimatedPage implements DecoratorPage {
 
             // logo del launcher (arriba)
             MainPage main = control.getMainPage();
-            StackPane launcherButton = imageButton(LAUNCHER_LOGO, true); // vuelve a la pantalla de inicio
+            StackPane launcherButton = launcherLogoButton(); // vuelve a la pantalla de inicio
             FXUtils.onClicked(launcherButton, main::showHome);
             FXUtils.installFastTooltip(launcherButton, "Gustambo Launcher");
 
@@ -127,6 +131,23 @@ public class RootPage extends DecoratorAnimatedPage implements DecoratorPage {
             button.setStyle(selected
                     ? "-fx-border-color: " + ACCENT + "; -fx-border-width: 2; -fx-border-radius: 12;"
                     : "");
+        }
+
+        /// Botón del launcher: cuadrado azul con la rata blanca (sin fondo propio en el PNG).
+        private static StackPane launcherLogoButton() {
+            ImageView rat = new ImageView(FXUtils.newBuiltinImage(LAUNCHER_LOGO, 112, 112, true, true));
+            rat.setFitWidth(44);
+            rat.setFitHeight(44);
+            rat.setPreserveRatio(true);
+
+            StackPane button = new StackPane(rat);
+            button.setPrefSize(64, 64);
+            button.setMinSize(64, 64);
+            button.setMaxSize(64, 64);
+            // El fondo va por Java (no por CSS) para que setSelected solo cambie el borde.
+            button.setBackground(new Background(new BackgroundFill(Color.web(ACCENT), new CornerRadii(12), Insets.EMPTY)));
+            button.setCursor(Cursor.HAND);
+            return button;
         }
 
         private static StackPane imageButton(String resource, boolean clickable) {
