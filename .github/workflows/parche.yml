@@ -1,12 +1,15 @@
 name: Parche y compilar
+
 on:
   push:
     branches: [main]
     paths: ['parche*.zip']
   workflow_dispatch:
+
 permissions:
   contents: write
   actions: write
+
 jobs:
   parche:
     runs-on: ubuntu-latest
@@ -28,7 +31,9 @@ jobs:
           git add -A
           git diff --cached --quiet || git commit -m "Aplicar parche"
           git push
-      - name: Lanzar compilación (Java CI)
+      - name: Lanzar compilaciones
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh workflow run gradle.yml --ref main
+        run: |
+          gh workflow run gradle.yml --ref main
+          gh workflow run portable.yml --ref main
