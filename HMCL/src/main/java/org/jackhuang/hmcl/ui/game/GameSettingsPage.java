@@ -95,6 +95,7 @@ public final class GameSettingsPage<S extends GameSettings> extends StackPane
     private final @UnknownNullability ImagePickerItem iconPickerItem;
 
     private final ComponentSublist javaSublist;
+    private final ComponentSublist memorySublist;
     private final RadioChoiceList<@Nullable Pair<@Nullable JavaVersionType, @Nullable JavaRuntime>> javaItem;
     private final RadioChoiceList.Choice<@Nullable Pair<@Nullable JavaVersionType, @Nullable JavaRuntime>> javaAutoDeterminedOption;
     private final RadioChoiceList.Choice<@Nullable Pair<@Nullable JavaVersionType, @Nullable JavaRuntime>> javaVersionOption;
@@ -358,7 +359,7 @@ public final class GameSettingsPage<S extends GameSettings> extends StackPane
             // Memory Setting
             @Nullable JFXButton autoMemoryButton = !isPresetSetting ? createInheritanceButton() : null;
             ObjectProperty<Boolean> memorySelectedValue = new SimpleObjectProperty<>(true);
-            var memorySublist = new ComponentSublist(() -> {
+            memorySublist = new ComponentSublist(() -> {
                 var memoryItem = new RadioChoiceList<Boolean>();
                 memoryItem.setFallbackValue(true);
 
