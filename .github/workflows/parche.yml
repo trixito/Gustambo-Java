@@ -1,6 +1,7 @@
 name: Parche y compilar
 on:
   push:
+    branches: [main]
     paths: ['parche*.zip']
   workflow_dispatch:
 permissions:
