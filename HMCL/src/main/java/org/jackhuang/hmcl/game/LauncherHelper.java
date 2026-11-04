@@ -309,6 +309,8 @@ public final class LauncherHelper {
                 }).thenAcceptAsync(process -> { // process is LaunchTask's result
                     if (scriptFile == null) {
                         PROCESSES.add(new WeakReference<>(process));
+                        // Discord Rich Presence: solo mientras Minecraft está abierto
+                        org.jackhuang.hmcl.gustambo.DiscordPresence.launchForGame(process.getProcess().pid());
                         if (launcherVisibility == LauncherVisibility.CLOSE)
                             Launcher.stopApplication();
                         else

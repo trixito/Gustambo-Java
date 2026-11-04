@@ -249,6 +249,10 @@ public final class MainPage extends StackPane implements DecoratorPage {
             GustamboModpack.promptUpdate();
             return;
         }
+        if (GustamboAccount.hasDefaultName()) { // aún no eligió nombre: se lo pedimos y luego juega
+            GustamboAccount.askNickname(this::launch);
+            return;
+        }
         HMCLGameRepository repository = GameDirectoryManager.getSelectedRepository();
         Instances.launch(repository.getSelectedInstance());
     }

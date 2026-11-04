@@ -132,8 +132,7 @@ public final class Launcher extends Application {
                 // Gustambo Launcher: actualizador de HMCL desactivado; se instala/actualiza el modpack Trixsafio
                 GustamboModpack.start();
 
-                // Gustambo Launcher: Discord Rich Presence ("Jugando a Gustambo Launcher - Trixsafio")
-                DiscordPresence.start();
+                // Discord Rich Presence: solo se activa al lanzar Minecraft (ver LauncherHelper)
 
                 primaryStage.show();
                 GustamboAccount.ensureAccount();

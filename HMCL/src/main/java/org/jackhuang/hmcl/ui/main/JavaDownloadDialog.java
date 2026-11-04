@@ -67,14 +67,13 @@ public final class JavaDownloadDialog extends StackPane {
     public static Runnable showDialogAction(DownloadProvider downloadProvider) {
         Platform platform = Platform.SYSTEM_PLATFORM;
 
-        List<GameJavaVersion> supportedVersions = GameJavaVersion.getSupportedVersions(platform);
+        // Gustambo Launcher: solo se permite descargar Java 21 (Minecraft 1.21.1)
+        List<GameJavaVersion> supportedVersions = GameJavaVersion.getSupportedVersions(platform).stream()
+                .filter(version -> version.majorVersion() == 21)
+                .toList();
 
+        // Sin distribuciones extra (Temurin, Zulu...): nada de elegir otras versiones de Java
         EnumSet<DiscoJavaDistribution> distributions = EnumSet.noneOf(DiscoJavaDistribution.class);
-        for (DiscoJavaDistribution distribution : DiscoJavaDistribution.values()) {
-            if (distribution.isSupport(platform)) {
-                distributions.add(distribution);
-            }
-        }
 
         return supportedVersions.isEmpty() && distributions.isEmpty()
                 ? null

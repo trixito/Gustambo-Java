@@ -2,8 +2,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later WITH AdditionRef-HMCL
 package org.jackhuang.hmcl.gustambo;
 
-import com.google.gson.JsonObject;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -17,6 +15,7 @@ import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.UUID;
 
 /// Discord Rich Presence sin librerías externas (IPC local con el Discord de escritorio).
@@ -33,60 +32,61 @@ public final class DiscordPresence {
     private static final String LARGE_IMAGE_TEXT = "Gustambo Launcher";
 
     private static volatile boolean running;
-    private static volatile Thread thread;
-    private static volatile Closeable0 connection;
+    private static volatile long gamePid;
 
-    private interface Closeable0 {
-        void close();
+    /// Lanza un proceso APARTE que mantiene la presencia mientras Minecraft (`pid`) siga abierto.
+    /// Así la presencia no depende del launcher: puede cerrarse y seguirá mostrándose.
+    public static void launchForGame(long pid) {
+        try {
+            Path jar = Path.of(DiscordPresence.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+            boolean windows = System.getProperty("os.name", "").toLowerCase().contains("win");
+            Path java = Path.of(System.getProperty("java.home"), "bin", windows ? "javaw.exe" : "java");
+            ProcessBuilder builder = new ProcessBuilder(List.of(
+                    java.toString(), "-Xmx32m", "-cp", jar.toString(),
+                    DiscordPresence.class.getName(), Long.toString(pid)));
+            builder.redirectErrorStream(true);
+            builder.redirectOutput(ProcessBuilder.Redirect.DISCARD);
+            builder.start();
+        } catch (Throwable ignored) {
+            // Sin presencia de Discord no pasa nada: el juego sigue igual.
+        }
     }
 
-    public static synchronized void start() {
-        if (running) return;
+    /// Ya no hace falta cerrar nada desde el launcher (el proceso aparte se cierra con el juego).
+    public static void stop() {
+    }
+
+    /// Punto de entrada del proceso aparte: `DiscordPresence <pid del juego>`.
+    public static void main(String[] args) {
+        if (args.length < 1) return;
+        long pid;
+        try {
+            pid = Long.parseLong(args[0]);
+        } catch (NumberFormatException e) {
+            return;
+        }
+        var handle = ProcessHandle.of(pid);
+        if (handle.isEmpty() || !handle.get().isAlive()) return;
+        gamePid = pid;
         running = true;
-        Thread t = new Thread(DiscordPresence::loop, "Gustambo-DiscordPresence");
-        t.setDaemon(true);
-        thread = t;
-        t.start();
-    }
-
-    public static synchronized void stop() {
-        running = false;
-        Closeable0 c = connection;
-        if (c != null) c.close();
-        Thread t = thread;
-        if (t != null) t.interrupt();
+        handle.get().onExit().thenRun(() -> System.exit(0)); // el juego se cerró: quitar presencia y salir
+        loop();
     }
 
     private static void loop() {
         final long startTime = System.currentTimeMillis() / 1000;
         while (running) {
             try (Ipc ipc = Ipc.open()) {
-                connection = ipc::close;
                 ipc.send(0, "{\"v\":1,\"client_id\":\"" + CLIENT_ID + "\"}");
                 ipc.read(); // READY
 
-                JsonObject assets = new JsonObject();
-                assets.addProperty("large_image", LARGE_IMAGE_KEY);
-                assets.addProperty("large_text", LARGE_IMAGE_TEXT);
+                String frame = "{\"cmd\":\"SET_ACTIVITY\",\"nonce\":\"" + UUID.randomUUID() + "\","
+                        + "\"args\":{\"pid\":" + gamePid + ",\"activity\":{"
+                        + "\"details\":\"" + DETAILS + "\","
+                        + "\"assets\":{\"large_image\":\"" + LARGE_IMAGE_KEY + "\",\"large_text\":\"" + LARGE_IMAGE_TEXT + "\"},"
+                        + "\"timestamps\":{\"start\":" + startTime + "}}}}";
 
-                JsonObject timestamps = new JsonObject();
-                timestamps.addProperty("start", startTime);
-
-                JsonObject activity = new JsonObject();
-                activity.addProperty("details", DETAILS);
-                activity.add("assets", assets);
-                activity.add("timestamps", timestamps);
-
-                JsonObject args = new JsonObject();
-                args.addProperty("pid", ProcessHandle.current().pid());
-                args.add("activity", activity);
-
-                JsonObject frame = new JsonObject();
-                frame.addProperty("cmd", "SET_ACTIVITY");
-                frame.add("args", args);
-                frame.addProperty("nonce", UUID.randomUUID().toString());
-
-                ipc.send(1, frame.toString());
+                ipc.send(1, frame);
                 ipc.read();
 
                 // Mantener la conexión abierta; si Discord se cierra, read() lanza excepción y se reintenta.
@@ -96,7 +96,6 @@ public final class DiscordPresence {
             } catch (Throwable ignored) {
                 // Discord no está abierto o se cerró: reintentar más tarde, sin molestar al launcher.
             }
-            connection = null;
             if (!running) break;
             try {
                 Thread.sleep(15_000);
